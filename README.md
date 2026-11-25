@@ -25,6 +25,7 @@ Web App แบบ Mobile-First สำหรับดูยอดบิล แน
 
 ```text
 samsara-utility-bill/
+├── index.html               # หน้าแอป Mobile-First ครบทุกมุมมองและ Modal (อยู่ที่ Root พร้อมขึ้น GitHub Pages)
 ├── README.md                # คู่มือการติดตั้งและใช้งาน
 ├── docs/
 │   └── SPEC.md              # เอกสารสเปกและโครงสร้างฐานข้อมูล
@@ -32,12 +33,11 @@ samsara-utility-bill/
 │   ├── setup.gs             # สคริปต์สร้าง 5 แท็บ + โฟลเดอร์ Drive + ข้อมูลตั้งต้น พ.ย. 2569
 │   └── Code.gs              # Web App API (doGet / doPost) ครบทุก Endpoint
 └── web/
-    ├── index.html           # หน้าแอป Mobile-First ครบทุกมุมมองและ Modal
     ├── css/
     │   └── style.css        # Design Tokens, Text Styles, Motion และ @media print
     └── js/
         ├── config.js        # ตั้งค่า GAS_WEB_APP_URL และระบบ Mock Data อัตโนมัติ
-        ├── api.js           # ตัวเชื่อมต่อ API, บีบอัดภาพสลิป และ Mock API Router
+        ├── api.js           # ตัวเชื่อมต่อ API, Real-Time Progress, บีบอัดสลิป และ Mock Router
         ├── charts.js        # จัดการกราฟ Chart.js หน้าสถิติย้อนหลัง
         └── app.js           # ลอจิกหลักของหน้าจอทั้งหมด (Resident, Stats, Admin, Print, CSV)
 ```
@@ -85,39 +85,38 @@ samsara-utility-bill/
 1. เปิดไฟล์ [`web/js/config.js`](web/js/config.js)
 2. นำ Web App URL ที่ได้จากขั้นที่ 4 มาใส่ในค่า `GAS_WEB_APP_URL`:
    ```js
-   export const CONFIG = {
+   const CONFIG = {
      GAS_WEB_APP_URL: 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec',
      // ...
    };
    ```
 3. บันทึกไฟล์ (หากปล่อยค่าว่างไว้ เว็บจะเปิดใน **โหมดข้อมูลจำลอง (Mock Mode)** อัตโนมัติเพื่อให้พรีวิวและทดสอบได้ทันที)
 
-### ขั้นที่ 6: นำหน้าเว็บ (`web/`) ขึ้นใช้งานออนไลน์
+### ขั้นที่ 6: นำหน้าเว็บขึ้นใช้งานออนไลน์
 
 #### วิธีที่ 1: Deploy บน GitHub Pages (ฟรี)
-1. Push โฟลเดอร์โปรเจกต์ขึ้น GitHub Repository ของคุณ
+1. Push โปรเจกต์ขึ้น GitHub Repository ของคุณ
 2. เข้าหน้า Repository → **Settings → Pages**
-3. เลือก Source หรือตั้งค่า GitHub Actions ให้ Publish โฟลเดอร์ `web/` (หรือย้ายไฟล์ใน `web/` ขึ้นสาขา `gh-pages`)
+3. ในหัวข้อ **Build and deployment** เลือก Source เป็น **Deploy from a branch** → เลือกสาขา **`main`** และโฟลเดอร์ **`/(root)`** → กด **Save**
 4. เมื่อเผยแพร่แล้ว จะได้ลิงก์ `https://<username>.github.io/samsara-utility-bill/` นำไปแชร์ในกลุ่ม LINE บ้านพักครูได้ทันที
 
 #### วิธีที่ 2: Deploy บน Vercel (ฟรีและเร็วที่สุด)
 1. เข้า [vercel.com](https://vercel.com) → **Add New Project** → เชื่อมต่อ GitHub Repository `samsara-utility-bill`
-2. ตั้งค่า **Root Directory** เป็น `web`
-3. ปล่อย **Build Command** และ **Output Directory** เป็นค่าเริ่มต้น (Static HTML) แล้วกด **Deploy**
-4. นำ URL ที่ได้ไปใช้งานและเปิดในมือถือได้ทันที
+2. ปล่อย **Root Directory**, **Build Command** และ **Output Directory** เป็นค่าเริ่มต้น (Static HTML) แล้วกด **Deploy**
+3. นำ URL ที่ได้ไปใช้งานและเปิดในมือถือได้ทันที
 
 ---
 
 ## การทดสอบบนเครื่องคอมพิวเตอร์ (Local Preview)
 
-เนื่องจาก Frontend ใช้ ES Modules (`type="module"`) ควรเปิดผ่าน Local HTTP Server แทนการดับเบิลคลิกไฟล์ HTML โดยตรง เช่น:
+สามารถดับเบิลคลิกเปิดไฟล์ [`index.html`](index.html) ในเบราว์เซอร์ได้โดยตรง หรือเปิดผ่าน Local HTTP Server:
 
 ```bash
-npx serve web
+npx serve .
 ```
 หรือด้วย Python:
 ```bash
-python -m http.server 8080 --directory web
+python -m http.server 8080
 ```
 จากนั้นเปิดเบราว์เซอร์ไปที่ `http://localhost:8080` (หรือพอร์ตที่คำสั่งแสดง)
 - **รหัส Admin PIN เริ่มต้น:** `1234` (แนะนำให้เปลี่ยนทันทีเมื่อนำขึ้นใช้งานจริงผ่านเมนู **ผู้ดูแลระบบ → รอบบิล & ตั้งค่า**)
