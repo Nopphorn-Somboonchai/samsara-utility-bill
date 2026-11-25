@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ระบบจดและติดตามค่าน้ำ ค่าไฟ บ้านพักครู (สามสาระ)</title>
+  <meta name="description" content="ระบบตรวจสอบยอดค่าน้ำและค่าไฟรายเดือน แนบสลิปโอนเงิน ติดตามสถิติย้อนหลัง และจดมิเตอร์สำหรับบ้านพักครู (สามสาระ)" />
+
+  <!-- Branded SVG Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%231D5C92'/%3E%3Cpath d='M34 12L18 35h13l-2 17 17-23H33l1-17z' fill='%23FFFFFF'/%3E%3C/svg%3E" />
+
+  <!-- Google Fonts: Prompt & Sarabun (No Italic, Cap at Bold 700) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Phosphor Icons (Single Consistent Stroke Weight: Regular) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+  <!-- Custom Visual System & Print Styles -->
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <a href="#main-content" class="skip-link button-sm">ข้ามไปยังเนื้อหาหลัก</a>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Dedicated Print Container (Visible Only on @media print) -->
+  <div id="print-sheet-root" aria-hidden="true"></div>
+
+  <!-- Main Application Shell -->
+  <div id="app-shell" class="min-h-screen flex flex-col">
+
+    <!-- Mock Mode Notice Banner -->
+    <div id="mock-mode-banner" class="hidden bg-[#FFF7ED] border-b border-[#FED7AA] px-4 py-2">
+      <div class="max-w-4xl mx-auto flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2 text-[#C2410C] caption-1">
+          <i class="ph ph-flask text-base shrink-0" aria-hidden="true"></i>
+          <span>โหมดข้อมูลจำลอง (ยังไม่ได้ตั้งค่า GAS_WEB_APP_URL ใน web/js/config.js — PIN ทดสอบคือ 1234)</span>
+        </div>
+        <button id="btn-reset-mock" type="button" class="btn btn-secondary btn-compact button-xsm">
+          <i class="ph ph-arrow-counter-clockwise text-sm" aria-hidden="true"></i>
+          <span>รีเซ็ตข้อมูลจำลอง</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Top Application Header -->
+    <header class="app-header">
+      <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-lg bg-[#1D5C92] text-white flex items-center justify-center shrink-0" aria-hidden="true">
+            <i class="ph ph-lightning text-xl"></i>
+          </div>
+          <div class="min-w-0">
+            <h1 id="header-house-name" class="title-2 text-[#0F172A] truncate">บ้านพักครู (สามสาระ)</h1>
+            <p id="header-cycle-subtitle" class="caption-4 text-[#64748B] truncate">ระบบจดและติดตามค่าน้ำและค่าไฟ</p>
+          </div>
+        </div>
+
+        <!-- Desktop Navigation (Visible sm+) -->
+        <nav class="hidden sm:flex items-center gap-2" aria-label="เมนูหลัก">
+          <button type="button" data-nav-view="bills" class="nav-desktop-btn title-4 is-active" aria-current="page">
+            <i class="ph ph-receipt text-lg" aria-hidden="true"></i>
+            <span>บิลประจำเดือน</span>
+          </button>
+          <button type="button" data-nav-view="stats" class="nav-desktop-btn title-4">
+            <i class="ph ph-chart-bar text-lg" aria-hidden="true"></i>
+            <span>สถิติและย้อนหลัง</span>
+          </button>
+          <button type="button" data-nav-view="admin" class="nav-desktop-btn title-4 relative">
+            <i class="ph ph-shield-check text-lg" aria-hidden="true"></i>
+            <span>ผู้ดูแลระบบ</span>
+            <span id="nav-pending-badge-desktop" class="hidden ml-1 px-2 py-0.5 rounded-full bg-[#2563EB] text-white caption-3 tabular-nums">0</span>
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="flex-1 max-w-4xl w-full mx-auto px-4 pt-4 pb-24 sm:pb-12">
+
+      <!-- ================================================================== -->
+      <!-- VIEW 1: บิลประจำเดือน (Public Resident View)                         -->
+      <!-- ================================================================== -->
+      <section id="view-bills" aria-label="บิลประจำเดือน">
+        <!-- Archive Cycle Selector Row -->
+        <div class="flex items-center gap-2 mb-4">
+          <div class="flex-1 min-w-0">
+            <label for="bills-cycle-select" class="sr-only">เลือกรอบบิลประจำเดือน</label>
+            <select id="bills-cycle-select" class="field-select title-3">
+              <option value="">กำลังโหลดรอบบิล...</option>
+            </select>
+          </div>
+          <button id="btn-refresh-bills" type="button" class="btn btn-secondary shrink-0" title="รีเฟรชข้อมูลล่าสุด" aria-label="รีเฟรชข้อมูลล่าสุด">
+            <i class="ph ph-arrows-clockwise text-lg" aria-hidden="true"></i>
+            <span class="hidden sm:inline button-sm">รีเฟรช</span>
+          </button>
+        </div>
+
+        <!-- Real-Time Loading Progress + Skeleton Loader -->
+        <div id="bills-skeleton" class="space-y-4">
+          <div id="bills-progress-card" class="loading-progress-card space-y-2" role="status" aria-live="polite">
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2 min-w-0">
+                <span id="bills-progress-dot" class="loading-status-dot" aria-hidden="true"></span>
+                <span id="bills-progress-stage" class="title-4 text-[#0F172A] truncate">กำลังเตรียมเชื่อมต่อเซิร์ฟเวอร์...</span>
+              </div>
+              <span id="bills-progress-percent" class="heading-6 text-[#164873] tabular-nums shrink-0">0%</span>
+            </div>
+            <div class="loading-progress-track" role="progressbar" aria-label="ความคืบหน้าการโหลดข้อมูลรอบบิล" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <div id="bills-progress-bar" class="loading-progress-bar" style="transform: scaleX(0);"></div>
+            </div>
+            <div class="flex items-center justify-between gap-2 caption-4 text-[#64748B] tabular-nums">
+              <span id="bills-progress-meta">กำลังเชื่อมต่อ Google Apps Script</span>
+              <span id="bills-progress-elapsed">0.0 วินาที</span>
+            </div>
+          </div>
+
+          <div class="card p-4 space-y-3">
+            <div class="skeleton-block h-5 w-48"></div>
+            <div class="skeleton-block h-12 w-full"></div>
+          </div>
+          <div class="card p-4 space-y-3">
+            <div class="grid grid-cols-3 gap-2">
+              <div class="skeleton-block h-16"></div>
+              <div class="skeleton-block h-16"></div>
+              <div class="skeleton-block h-16"></div>
+            </div>
+            <div class="skeleton-block h-3 w-full"></div>
+          </div>
+          <div class="space-y-2">
+            <div class="card p-4 h-20 skeleton-block"></div>
+            <div class="card p-4 h-20 skeleton-block"></div>
+            <div class="card p-4 h-20 skeleton-block"></div>
+          </div>
+        </div>
+
+        <!-- Inline Error Box -->
+        <div id="bills-error-box" class="hidden card p-6 text-center space-y-3">
+          <div class="w-12 h-12 rounded-full bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] mx-auto flex items-center justify-center">
+            <i class="ph ph-warning-circle text-2xl" aria-hidden="true"></i>
+          </div>
+          <p class="title-3 text-[#0F172A]">ไม่สามารถโหลดข้อมูลรอบบิลได้</p>
+          <p id="bills-error-text" class="body-6 text-[#64748B]"></p>
+          <button id="btn-retry-bills" type="button" class="btn btn-primary button-sm">
+            <i class="ph ph-arrow-clockwise text-base" aria-hidden="true"></i>
+            <span>ลองใหม่อีกครั้ง</span>
+          </button>
+        </div>
+
+        <!-- Loaded Bills Content -->
+        <div id="bills-content" class="hidden space-y-4">
+
+          <!-- Due Date Banner & Bank Account Card -->
+          <article class="card p-4 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <i class="ph ph-calendar-check text-xl text-[#1D5C92] shrink-0" aria-hidden="true"></i>
+                <div class="min-w-0">
+                  <span class="caption-4 text-[#64748B] block">กำหนดชำระเงิน</span>
+                  <span id="bills-due-date" class="title-3 text-[#0F172A] tabular-nums">-</span>
+                </div>
+              </div>
+              <span id="bills-cycle-status-badge" class="status-badge caption-3">กำลังเปิดรับชำระ</span>
+            </div>
+
+            <div class="inner-panel p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div class="space-y-1 min-w-0">
+                <div class="flex items-center gap-2 text-[#164873]">
+                  <i class="ph ph-bank text-lg shrink-0" aria-hidden="true"></i>
+                  <span id="bills-bank-name" class="title-4">ธนาคารกรุงไทย</span>
+                </div>
+                <div id="bills-bank-account-no" class="heading-5 text-[#0F172A] tabular-nums tracking-wide">8540466694</div>
+                <div class="caption-1 text-[#475569]">
+                  ชื่อบัญชี: <span id="bills-bank-account-name" class="body-4 text-[#0F172A]">ครูนพพร สมบูรณ์ชัย</span>
+                </div>
+              </div>
+              <button id="btn-copy-account" type="button" class="btn btn-primary button-sm w-full sm:w-auto shrink-0">
+                <i class="ph ph-copy text-lg" aria-hidden="true"></i>
+                <span>คัดลอกเลขบัญชี</span>
+              </button>
+            </div>
+
+            <div id="bills-rates-text" class="caption-4 text-[#64748B] flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span>ค่าน้ำเหมาจ่าย 75 บาท/ห้อง</span>
+              <span>ค่าไฟ 7 บาท/หน่วย</span>
+            </div>
+          </article>
+
+          <!-- Summary Card + Payment Collection Progress -->
+          <article class="card p-4 space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <h2 class="title-3 text-[#0F172A] flex items-center gap-2">
+                <i class="ph ph-wallet text-lg text-[#1D5C92]" aria-hidden="true"></i>
+                <span>สรุปยอดรวมส่งโรงเรียน</span>
+              </h2>
+              <span id="summary-units" class="caption-3 text-[#475569] tabular-nums">ใช้ไฟรวม 0 หน่วย</span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2">
+              <div class="inner-panel p-3 text-center">
+                <span class="caption-4 text-[#64748B] block">ค่าน้ำรวม</span>
+                <span id="summary-water" class="title-2 text-[#0F172A] tabular-nums">0</span>
+                <span class="caption-5 text-[#64748B] block">บาท</span>
+              </div>
+              <div class="inner-panel p-3 text-center">
+                <span class="caption-4 text-[#64748B] block">ค่าไฟรวม</span>
+                <span id="summary-electric" class="title-2 text-[#0F172A] tabular-nums">0</span>
+                <span class="caption-5 text-[#64748B] block">บาท</span>
+              </div>
+              <div class="bg-[#EFF6FC] border border-[#BAD6F0] rounded-lg p-3 text-center">
+                <span class="caption-4 text-[#164873] block">รวมสุทธิ</span>
+                <span id="summary-total" class="title-1 text-[#164873] tabular-nums">0</span>
+                <span class="caption-5 text-[#164873] block">บาท</span>
+              </div>
+            </div>
+
+            <div class="space-y-2 pt-1">
+              <div class="flex items-center justify-between gap-2 caption-1">
+                <span id="summary-collected-text" class="text-[#334155] tabular-nums">ชำระแล้ว 0 / 0 ห้อง (0 บาท)</span>
+                <span id="summary-collected-percent" class="title-4 text-[#047857] tabular-nums">0%</span>
+              </div>
+              <div class="progress-track" role="progressbar" aria-label="ความคืบหน้าการชำระเงิน" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <div id="summary-progress-fill" class="progress-fill" style="transform: scaleX(0);"></div>
+              </div>
+            </div>
+          </article>
+
+          <!-- Status Filter Pills -->
+          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1" role="tablist" aria-label="กรองตามสถานะการชำระเงิน">
+            <button type="button" data-bill-filter="all" class="filter-pill button-sm is-active">
+              <span>ทั้งหมด</span>
+              <span id="count-all" class="caption-3 tabular-nums">0</span>
+            </button>
+            <button type="button" data-bill-filter="unpaid" class="filter-pill button-sm">
+              <span>รอชำระ</span>
+              <span id="count-unpaid" class="caption-3 tabular-nums">0</span>
+            </button>
+            <button type="button" data-bill-filter="pending" class="filter-pill button-sm">
+              <span>รอตรวจสลิป</span>
+              <span id="count-pending" class="caption-3 tabular-nums">0</span>
+            </button>
+            <button type="button" data-bill-filter="paid" class="filter-pill button-sm">
+              <span>ชำระแล้ว</span>
+              <span id="count-paid" class="caption-3 tabular-nums">0</span>
+            </button>
+          </div>
+
+          <!-- Resident Bill Cards List -->
+          <div id="bills-card-list" class="space-y-3"></div>
+
+          <!-- Empty State for Filtered Bills -->
+          <div id="bills-empty-state" class="hidden card p-8 text-center space-y-2">
+            <i class="ph ph-tray text-3xl text-[#94A3B8]" aria-hidden="true"></i>
+            <p class="title-3 text-[#334155]">ไม่พบรายการบิลในสถานะนี้</p>
+            <p class="body-6 text-[#64748B]">ลองเปลี่ยนตัวกรองด้านบนเพื่อดูรายการทั้งหมดของรอบบิลนี้</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- VIEW 2: สถิติและประวัติย้อนหลัง (Public Stats & Archive View)       -->
+      <!-- ================================================================== -->
+      <section id="view-stats" class="hidden" aria-label="สถิติและประวัติย้อนหลัง">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <div class="flex items-center gap-2">
+            <label for="stats-year-select" class="title-4 text-[#334155] shrink-0">ปี พ.ศ.</label>
+            <select id="stats-year-select" class="field-select title-3 w-36">
+              <option value="">กำลังโหลด...</option>
+            </select>
+          </div>
+          <button id="btn-export-yearly-csv" type="button" class="btn btn-secondary button-sm">
+            <i class="ph ph-file-csv text-lg" aria-hidden="true"></i>
+            <span>Export CSV รายปี</span>
+          </button>
+        </div>
+
+        <!-- Real-Time Loading Progress + Skeleton (Stats) -->
+        <div id="stats-skeleton" class="space-y-4">
+          <div id="stats-progress-card" class="loading-progress-card space-y-2" role="status" aria-live="polite">
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2 min-w-0">
+                <span id="stats-progress-dot" class="loading-status-dot" aria-hidden="true"></span>
+                <span id="stats-progress-stage" class="title-4 text-[#0F172A] truncate">กำลังดึงข้อมูลสถิติรายปี...</span>
+              </div>
+              <span id="stats-progress-percent" class="heading-6 text-[#164873] tabular-nums shrink-0">0%</span>
+            </div>
+            <div class="loading-progress-track" role="progressbar" aria-label="ความคืบหน้าการโหลดข้อมูลสถิติ" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <div id="stats-progress-bar" class="loading-progress-bar" style="transform: scaleX(0);"></div>
+            </div>
+            <div class="flex items-center justify-between gap-2 caption-4 text-[#64748B] tabular-nums">
+              <span id="stats-progress-meta">กำลังเชื่อมต่อ Google Apps Script</span>
+              <span id="stats-progress-elapsed">0.0 วินาที</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div class="card p-4 h-20 skeleton-block"></div>
+            <div class="card p-4 h-20 skeleton-block"></div>
+            <div class="card p-4 h-20 skeleton-block"></div>
+            <div class="card p-4 h-20 skeleton-block"></div>
+          </div>
+          <div class="card p-4 h-64 skeleton-block"></div>
+          <div class="card p-4 h-64 skeleton-block"></div>
+        </div>
+
+        <!-- Inline Error -->
+        <div id="stats-error-box" class="hidden card p-6 text-center space-y-3">
+          <p class="title-3 text-[#B91C1C]">ไม่สามารถโหลดข้อมูลสถิติได้</p>
+          <p id="stats-error-text" class="body-6 text-[#64748B]"></p>
+          <button id="btn-retry-stats" type="button" class="btn btn-primary button-sm">ลองใหม่</button>
+        </div>
+
+        <!-- Loaded Stats Content -->
+        <div id="stats-content" class="hidden space-y-4">
+          <!-- Yearly KPI Cards -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div class="card p-3">
+              <span class="caption-4 text-[#64748B] block">ยอดรวมทั้งปี</span>
+              <span id="stats-kpi-total" class="heading-6 text-[#164873] tabular-nums">0</span>
+              <span class="caption-5 text-[#64748B]"> บาท</span>
+            </div>
+            <div class="card p-3">
+              <span class="caption-4 text-[#64748B] block">ค่าน้ำรวมทั้งปี</span>
+              <span id="stats-kpi-water" class="heading-6 text-[#0F172A] tabular-nums">0</span>
+              <span class="caption-5 text-[#64748B]"> บาท</span>
+            </div>
+            <div class="card p-3">
+              <span class="caption-4 text-[#64748B] block">ค่าไฟรวมทั้งปี</span>
+              <span id="stats-kpi-electric" class="heading-6 text-[#0F172A] tabular-nums">0</span>
+              <span class="caption-5 text-[#64748B]"> บาท</span>
+            </div>
+            <div class="card p-3">
+              <span class="caption-4 text-[#64748B] block">หน่วยไฟรวมทั้งปี</span>
+              <span id="stats-kpi-units" class="heading-6 text-[#C2410C] tabular-nums">0</span>
+              <span class="caption-5 text-[#64748B]"> หน่วย</span>
+            </div>
+          </div>
+
+          <!-- Chart 1: House Monthly Trend -->
+          <article class="card p-4 space-y-3">
+            <div>
+              <h2 class="title-2 text-[#0F172A]">แนวโน้มค่าไฟและหน่วยที่ใช้ทั้งบ้านพักรายเดือน</h2>
+              <p class="caption-2 text-[#64748B]">เปรียบเทียบยอดค่าไฟ (บาท) กับจำนวนหน่วยไฟรวมตลอดปี</p>
+            </div>
+            <div class="relative h-64 w-full">
+              <canvas id="chart-house-trend" aria-label="กราฟแนวโน้มค่าไฟรวมทั้งบ้านพักรายเดือน"></canvas>
+            </div>
+            <p id="stats-house-empty" class="hidden text-center body-6 text-[#64748B] py-6">ยังไม่มีข้อมูลรอบบิลในปีนี้</p>
+          </article>
+
+          <!-- Chart 2: Individual Resident History -->
+          <article class="card p-4 space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h2 class="title-2 text-[#0F172A]">ประวัติการใช้ไฟรายบุคคล</h2>
+                <p class="caption-2 text-[#64748B]">เลือกดูได้ทั้งครูที่พักอยู่ปัจจุบันและผู้ย้ายออกไปแล้ว</p>
+              </div>
+              <div class="w-full sm:w-72">
+                <label for="stats-resident-select" class="sr-only">เลือกชื่อครู</label>
+                <select id="stats-resident-select" class="field-select body-5"></select>
+              </div>
+            </div>
+            <div class="relative h-64 w-full">
+              <canvas id="chart-resident-trend" aria-label="กราฟประวัติการใช้ไฟรายบุคคล"></canvas>
+            </div>
+            <p id="stats-resident-empty" class="hidden text-center body-6 text-[#64748B] py-4">ไม่พบประวัติการใช้ไฟของรายชื่อนี้ในปีที่เลือก</p>
+
+            <!-- Individual Monthly Records Breakdown & Slip Links -->
+            <div id="stats-resident-history-list" class="space-y-2 pt-2"></div>
+          </article>
+
+          <!-- Yearly School Summary Table -->
+          <article class="card p-4 space-y-3">
+            <div>
+              <h2 class="title-2 text-[#0F172A]">ตารางสรุปยอดส่งโรงเรียนรายปี</h2>
+              <p class="caption-2 text-[#64748B]">สรุปยอดค่าน้ำ ค่าไฟ และยอดรวมแต่ละเดือนตลอดปี พ.ศ. ที่เลือก</p>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="school-table">
+                <thead>
+                  <tr>
+                    <th>เดือน</th>
+                    <th>ห้อง</th>
+                    <th>หน่วยไฟ</th>
+                    <th>ค่าน้ำ (บาท)</th>
+                    <th>ค่าไฟ (บาท)</th>
+                    <th>รวมสุทธิ (บาท)</th>
+                    <th>สถานะเก็บเงิน</th>
+                  </tr>
+                </thead>
+                <tbody id="stats-yearly-tbody"></tbody>
+                <tfoot id="stats-yearly-tfoot"></tfoot>
+              </table>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- VIEW 3: ผู้ดูแลระบบ (Admin Dashboard — PIN Protected)               -->
+      <!-- ================================================================== -->
+      <section id="view-admin" class="hidden" aria-label="ผู้ดูแลระบบ">
+
+        <!-- PIN Login Card -->
+        <div id="admin-login-panel" class="max-w-md mx-auto mt-6 card p-6 space-y-4">
+          <div class="text-center space-y-2">
+            <div class="w-12 h-12 rounded-xl bg-[#EFF6FC] border border-[#BAD6F0] text-[#1D5C92] mx-auto flex items-center justify-center">
+              <i class="ph ph-lock-key text-2xl" aria-hidden="true"></i>
+            </div>
+            <h2 class="heading-6 text-[#0F172A]">เข้าสู่โหมดผู้ดูแลระบบ</h2>
+            <p class="body-6 text-[#64748B]">กรอกรหัส PIN เพื่อจดมิเตอร์ ตรวจสลิป จัดการผู้พักอาศัย และขึ้นรอบบิลใหม่</p>
+          </div>
+
+          <form id="form-admin-login" class="space-y-3" novalidate>
+            <div class="space-y-1">
+              <label for="input-admin-pin" class="title-4 text-[#334155] block">รหัส PIN ผู้ดูแล</label>
+              <div class="relative">
+                <input
+                  id="input-admin-pin"
+                  type="password"
+                  inputmode="numeric"
+                  autocomplete="current-password"
+                  placeholder="กรอกรหัส PIN"
+                  class="field-input pr-12 tabular-nums tracking-widest"
+                  required
+                />
+                <button
+                  id="btn-toggle-pin-visibility"
+                  type="button"
+                  class="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-[#64748B] rounded-lg"
+                  aria-label="แสดงหรือซ่อนรหัส PIN"
+                >
+                  <i class="ph ph-eye text-lg" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+
+            <p id="admin-login-error" class="hidden body-6 text-[#B91C1C] bg-[#FEF2F2] border border-[#FECACA] rounded-lg px-3 py-2"></p>
+
+            <button id="btn-admin-login-submit" type="submit" class="btn btn-primary button-md w-full">
+              <i class="ph ph-sign-in text-lg" aria-hidden="true"></i>
+              <span>ปลดล็อกผู้ดูแลระบบ</span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Unlocked Admin Dashboard -->
+        <div id="admin-dashboard-panel" class="hidden space-y-4">
+          <!-- Admin Top Context Bar -->
+          <div class="card p-3 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+              <label for="admin-cycle-select" class="caption-3 text-[#475569] shrink-0">รอบบิลที่จัดการ:</label>
+              <select id="admin-cycle-select" class="field-select title-4 flex-1 min-w-0"></select>
+              <span id="admin-cycle-status-badge" class="status-badge caption-3 shrink-0">เปิดอยู่</span>
+            </div>
+            <button id="btn-admin-logout" type="button" class="btn btn-secondary btn-compact button-xsm">
+              <i class="ph ph-sign-out text-base" aria-hidden="true"></i>
+              <span>ออกจากโหมดผู้ดูแล</span>
+            </button>
+          </div>
+
+          <!-- 4 Admin Sub-Tabs -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" role="tablist" aria-label="เมนูย่อยผู้ดูแลระบบ">
+            <button type="button" data-admin-tab="meters" class="admin-tab-btn button-sm is-active">
+              <i class="ph ph-gauge text-lg" aria-hidden="true"></i>
+              <span>จดมิเตอร์เร็ว</span>
+            </button>
+            <button type="button" data-admin-tab="slips" class="admin-tab-btn button-sm">
+              <i class="ph ph-check-square-offset text-lg" aria-hidden="true"></i>
+              <span>ตรวจสลิป</span>
+              <span id="admin-tab-pending-count" class="hidden px-1.5 py-0.5 rounded-full bg-[#EFF6FF] text-[#1D4ED8] caption-3 tabular-nums">0</span>
+            </button>
+            <button type="button" data-admin-tab="residents" class="admin-tab-btn button-sm">
+              <i class="ph ph-users text-lg" aria-hidden="true"></i>
+              <span>ครูเข้าออก</span>
+            </button>
+            <button type="button" data-admin-tab="manage" class="admin-tab-btn button-sm">
+              <i class="ph ph-sliders-horizontal text-lg" aria-hidden="true"></i>
+              <span>รอบบิลและตั้งค่า</span>
+            </button>
+          </div>
+
+          <!-- Sub-Tab 1: Quick Meter Entry -->
+          <div id="admin-panel-meters" class="space-y-3">
+            <div id="meters-closed-banner" class="hidden card p-4 bg-[#FFF7ED] border-[#FED7AA] flex flex-wrap items-center justify-between gap-3">
+              <div class="flex items-center gap-2 text-[#C2410C]">
+                <i class="ph ph-lock-simple text-xl shrink-0" aria-hidden="true"></i>
+                <p class="body-5">รอบบิลนี้ถูกปิดแล้ว จึงล็อกการแก้ไขเลขมิเตอร์ไว้ หากต้องการแก้ไขกรุณาเปิดรอบบิลก่อน</p>
+              </div>
+              <button id="btn-goto-reopen-cycle" type="button" class="btn btn-secondary btn-compact button-sm">
+                <span>ไปเปิดรอบบิล</span>
+              </button>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <p id="meters-rate-info" class="caption-1 text-[#475569]">เรทคำนวณรอบนี้: ค่าน้ำ 75 บาท • ค่าไฟ 7 บาท/หน่วย</p>
+              <span id="meters-validation-summary" class="hidden caption-3 text-[#B91C1C]">พบช่องที่เลขมิเตอร์ใหม่น้อยกว่าเลขเดิม</span>
+            </div>
+
+            <div id="meters-entry-list" class="space-y-3"></div>
+
+            <!-- Sticky Save Action Bar -->
+            <div class="card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#EFF6FC] border-[#BAD6F0]">
+              <div class="flex items-center gap-4">
+                <div>
+                  <span class="caption-4 text-[#164873] block">หน่วยไฟรวมรอบนี้</span>
+                  <span id="meters-live-units" class="title-2 text-[#0F172A] tabular-nums">0 หน่วย</span>
+                </div>
+                <div>
+                  <span class="caption-4 text-[#164873] block">ยอดรวมส่งโรงเรียน</span>
+                  <span id="meters-live-total" class="heading-6 text-[#164873] tabular-nums">0 บาท</span>
+                </div>
+              </div>
+              <button id="btn-save-meters" type="button" class="btn btn-primary button-md w-full sm:w-auto">
+                <i class="ph ph-floppy-disk text-lg" aria-hidden="true"></i>
+                <span>บันทึกมิเตอร์ทั้งหมด</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Sub-Tab 2: Slip Verification & Payment Status -->
+          <div id="admin-panel-slips" class="hidden space-y-4">
+            <div id="slips-pending-section" class="space-y-2">
+              <div class="flex items-center justify-between">
+                <h3 class="title-3 text-[#1D4ED8] flex items-center gap-2">
+                  <i class="ph ph-hourglass-high text-lg" aria-hidden="true"></i>
+                  <span>รายการรอตรวจสลิป</span>
+                </h3>
+                <span id="slips-pending-count" class="status-badge status-pending caption-3 tabular-nums">0 รายการ</span>
+              </div>
+              <div id="slips-pending-list" class="space-y-3"></div>
+            </div>
+
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <h3 class="title-3 text-[#C2410C] flex items-center gap-2">
+                  <i class="ph ph-clock text-lg" aria-hidden="true"></i>
+                  <span>รอชำระเงิน (บันทึกจ่ายเงินสดได้)</span>
+                </h3>
+                <span id="slips-unpaid-count" class="status-badge status-unpaid caption-3 tabular-nums">0 รายการ</span>
+              </div>
+              <div id="slips-unpaid-list" class="space-y-2"></div>
+            </div>
+
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <h3 class="title-3 text-[#047857] flex items-center gap-2">
+                  <i class="ph ph-check-circle text-lg" aria-hidden="true"></i>
+                  <span>ชำระเงินแล้ว</span>
+                </h3>
+                <span id="slips-paid-count" class="status-badge status-paid caption-3 tabular-nums">0 รายการ</span>
+              </div>
+              <div id="slips-paid-list" class="space-y-2"></div>
+            </div>
+          </div>
+
+          <!-- Sub-Tab 3: Resident Management -->
+          <div id="admin-panel-residents" class="hidden space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <button type="button" data-resident-filter="active" class="filter-pill button-sm is-active">
+                  <span>ผู้พักปัจจุบัน</span>
+                  <span id="res-count-active" class="caption-3 tabular-nums">0</span>
+                </button>
+                <button type="button" data-resident-filter="moved_out" class="filter-pill button-sm">
+                  <span>ประวัติผู้ย้ายออก</span>
+                  <span id="res-count-moved" class="caption-3 tabular-nums">0</span>
+                </button>
+              </div>
+              <button id="btn-open-add-resident" type="button" class="btn btn-primary button-sm">
+                <i class="ph ph-user-plus text-lg" aria-hidden="true"></i>
+                <span>เพิ่มครูย้ายเข้า</span>
+              </button>
+            </div>
+
+            <div id="residents-list-container" class="space-y-2"></div>
+          </div>
+
+          <!-- Sub-Tab 4: Cycles, Reports & Settings -->
+          <div id="admin-panel-manage" class="hidden space-y-4">
+            <!-- Quick Action Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <button id="btn-open-create-cycle" type="button" class="card-interactive p-4 text-left space-y-2">
+                <div class="w-10 h-10 rounded-lg bg-[#EFF6FC] border border-[#BAD6F0] text-[#1D5C92] flex items-center justify-center">
+                  <i class="ph ph-calendar-plus text-xl" aria-hidden="true"></i>
+                </div>
+                <div class="title-3 text-[#0F172A]">ขึ้นรอบบิลเดือนใหม่</div>
+                <p class="caption-2 text-[#64748B]">ดึงเลขมิเตอร์ล่าสุดของครูที่พักอยู่ปัจจุบันให้อัตโนมัติ</p>
+              </button>
+
+              <button id="btn-open-line-summary" type="button" class="card-interactive p-4 text-left space-y-2">
+                <div class="w-10 h-10 rounded-lg bg-[#ECFDF5] border border-[#A7F3D0] text-[#047857] flex items-center justify-center">
+                  <i class="ph ph-chat-circle-text text-xl" aria-hidden="true"></i>
+                </div>
+                <div class="title-3 text-[#0F172A]">คัดลอกข้อความส่ง LINE</div>
+                <p class="caption-2 text-[#64748B]">สร้างข้อความสรุปยอดรายห้อง กำหนดชำระ เลขบัญชี และลิงก์เว็บ</p>
+              </button>
+
+              <button id="btn-open-school-report" type="button" class="card-interactive p-4 text-left space-y-2">
+                <div class="w-10 h-10 rounded-lg bg-[#F1F5F9] border border-[#CBD5E1] text-[#334155] flex items-center justify-center">
+                  <i class="ph ph-printer text-xl" aria-hidden="true"></i>
+                </div>
+                <div class="title-3 text-[#0F172A]">ตารางส่งโรงเรียน (A4 / CSV)</div>
+                <p class="caption-2 text-[#64748B]">ดูตัวอย่างตารางแบบฟอร์มเดิม สั่งพิมพ์ A4 หรือดาวน์โหลด CSV</p>
+              </button>
+            </div>
+
+            <!-- Edit Active Cycle Form -->
+            <article class="card p-4 space-y-3">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="title-2 text-[#0F172A]">จัดการรอบบิลที่เลือก</h3>
+                <span id="edit-cycle-label" class="caption-3 text-[#164873] bg-[#EFF6FC] border border-[#BAD6F0] px-2.5 py-1 rounded-full">-</span>
+              </div>
+              <form id="form-update-cycle" class="space-y-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div class="space-y-1">
+                    <label for="edit-cycle-due-date" class="title-4 text-[#334155] block">วันครบกำหนดชำระ</label>
+                    <input id="edit-cycle-due-date" type="text" class="field-input" required />
+                  </div>
+                  <div class="space-y-1">
+                    <label for="edit-cycle-status" class="title-4 text-[#334155] block">สถานะรอบบิล</label>
+                    <select id="edit-cycle-status" class="field-select">
+                      <option value="open">เปิดรับชำระ (open — แก้ไขมิเตอร์และส่งสลิปได้)</option>
+                      <option value="closed">ปิดรอบบิลแล้ว (closed — ล็อกมิเตอร์และปิดส่งสลิป)</option>
+                    </select>
+                  </div>
+                  <div class="space-y-1">
+                    <label for="edit-cycle-water-rate" class="title-4 text-[#334155] block">ค่าน้ำต่อห้อง (บาท)</label>
+                    <input id="edit-cycle-water-rate" type="number" min="0" step="1" inputmode="numeric" class="field-input tabular-nums" required />
+                  </div>
+                  <div class="space-y-1">
+                    <label for="edit-cycle-electric-rate" class="title-4 text-[#334155] block">ค่าไฟต่อหน่วย (บาท)</label>
+                    <input id="edit-cycle-electric-rate" type="number" min="0" step="0.5" inputmode="decimal" class="field-input tabular-nums" required />
+                  </div>
+                </div>
+                <p class="caption-4 text-[#64748B]">หากเปลี่ยนเรทค่าน้ำหรือค่าไฟ ระบบจะคำนวณยอดเงินทุกห้องในรอบบิลนี้ให้ใหม่โดยอัตโนมัติ</p>
+                <button id="btn-save-cycle" type="submit" class="btn btn-primary button-sm">
+                  <i class="ph ph-check text-base" aria-hidden="true"></i>
+                  <span>บันทึกการตั้งค่ารอบบิล</span>
+                </button>
+              </form>
+            </article>
+
+            <!-- System Settings & Change PIN Form -->
+            <article class="card p-4 space-y-3">
+              <h3 class="title-2 text-[#0F172A]">ตั้งค่าบ้านพัก บัญชีธนาคาร และรหัส PIN</h3>
+              <form id="form-update-settings" class="space-y-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div class="space-y-1 sm:col-span-2">
+                    <label for="set-house-name" class="title-4 text-[#334155] block">ชื่อบ้านพักครู</label>
+                    <input id="set-house-name" type="text" class="field-input" required />
+                  </div>
+                  <div class="space-y-1">
+                    <label for="set-bank-name" class="title-4 text-[#334155] block">ชื่อธนาคาร</label>
+                    <input id="set-bank-name" type="text" class="field-input" required />
+                  </div>
+                  <div class="space-y-1">
+                    <label for="set-bank-account-no" class="title-4 text-[#334155] block">เลขที่บัญชี</label>
+                    <input id="set-bank-account-no" type="text" inputmode="numeric" class="field-input tabular-nums" required />
+                  </div>
+                  <div class="space-y-1">
+                    <label for="set-bank-account-name" class="title-4 text-[#334155] block">ชื่อบัญชี</label>
+                    <input id="set-bank-account-name" type="text" class="field-input" required />
+                  </div>
+                  <div class="space-y-1">
+                    <label for="set-promptpay-id" class="title-4 text-[#334155] block">หมายเลขพร้อมเพย์ (เว้นว่างได้)</label>
+                    <input id="set-promptpay-id" type="text" inputmode="numeric" class="field-input tabular-nums" placeholder="สำหรับใช้งานในอนาคต" />
+                  </div>
+                  <div class="space-y-1">
+                    <label for="set-default-water-rate" class="title-4 text-[#334155] block">ค่าน้ำเริ่มต้น (บาท)</label>
+                    <input id="set-default-water-rate" type="number" min="0" step="1" inputmode="numeric" class="field-input tabular-nums" required />
+                  </div>
+                  <div class="space-y-1">
+                    <label for="set-default-electric-rate" class="title-4 text-[#334155] block">ค่าไฟเริ่มต้น (บาท/หน่วย)</label>
+                    <input id="set-default-electric-rate" type="number" min="0" step="0.5" inputmode="decimal" class="field-input tabular-nums" required />
+                  </div>
+                </div>
+
+                <div class="inner-panel p-3 space-y-2">
+                  <p class="title-4 text-[#0F172A]">เปลี่ยนรหัส Admin PIN (เว้นว่างหากไม่ต้องการเปลี่ยน)</p>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                      <label for="set-new-pin" class="caption-3 text-[#475569] block">รหัส PIN ใหม่ (4 ถึง 12 ตัวอักษร)</label>
+                      <input id="set-new-pin" type="password" inputmode="numeric" autocomplete="new-password" class="field-input tabular-nums" placeholder="เว้นว่างหากใช้รหัสเดิม" />
+                    </div>
+                    <div class="space-y-1">
+                      <label for="set-confirm-pin" class="caption-3 text-[#475569] block">ยืนยันรหัส PIN ใหม่</label>
+                      <input id="set-confirm-pin" type="password" inputmode="numeric" autocomplete="new-password" class="field-input tabular-nums" placeholder="กรอกรหัส PIN ใหม่อีกครั้ง" />
+                    </div>
+                  </div>
+                </div>
+
+                <p id="settings-form-error" class="hidden body-6 text-[#B91C1C] bg-[#FEF2F2] border border-[#FECACA] rounded-lg px-3 py-2"></p>
+
+                <button id="btn-save-settings" type="submit" class="btn btn-primary button-sm">
+                  <i class="ph ph-floppy-disk text-base" aria-hidden="true"></i>
+                  <span>บันทึกการตั้งค่าระบบ</span>
+                </button>
+              </form>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Mobile Bottom Navigation Bar (Visible < sm) -->
+    <nav class="mobile-bottom-nav sm:hidden" aria-label="เมนูหลักมือถือ">
+      <div class="grid grid-cols-3">
+        <button type="button" data-nav-view="bills" class="nav-mobile-btn is-active" aria-current="page">
+          <i class="ph ph-receipt text-2xl" aria-hidden="true"></i>
+          <span class="caption-4">บิลประจำเดือน</span>
+        </button>
+        <button type="button" data-nav-view="stats" class="nav-mobile-btn">
+          <i class="ph ph-chart-bar text-2xl" aria-hidden="true"></i>
+          <span class="caption-4">สถิติย้อนหลัง</span>
+        </button>
+        <button type="button" data-nav-view="admin" class="nav-mobile-btn relative">
+          <span class="relative inline-flex">
+            <i class="ph ph-shield-check text-2xl" aria-hidden="true"></i>
+            <span id="nav-pending-badge-mobile" class="hidden absolute -top-1 -right-3 min-w-[18px] h-[18px] px-1 rounded-full bg-[#2563EB] text-white caption-3 tabular-nums flex items-center justify-center">0</span>
+          </span>
+          <span class="caption-4">ผู้ดูแลระบบ</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+
+  <!-- ====================================================================== -->
+  <!-- MODALS                                                                  -->
+  <!-- ====================================================================== -->
+
+  <!-- Modal 1: Bill Detail & Slip Upload -->
+  <div id="modal-bill-detail" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="bill-modal-title">
+    <div class="modal-sheet">
+      <div class="px-4 py-3 border-b border-[#E2E8F0] flex items-center justify-between gap-2">
+        <div class="min-w-0">
+          <h2 id="bill-modal-title" class="title-2 text-[#0F172A] truncate">รายละเอียดบิล</h2>
+          <p id="bill-modal-subtitle" class="caption-4 text-[#64748B] truncate">-</p>
+        </div>
+        <button type="button" data-close-modal="modal-bill-detail" class="btn btn-secondary btn-compact" aria-label="ปิดหน้าต่าง">
+          <i class="ph ph-x text-lg" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="p-4 overflow-y-auto space-y-4">
+        <div class="flex items-center justify-between gap-2">
+          <span class="caption-2 text-[#64748B]">สถานะการชำระเงิน</span>
+          <span id="bill-modal-status-badge" class="status-badge caption-3">-</span>
+        </div>
+
+        <!-- Reject Reason Alert -->
+        <div id="bill-modal-reject-box" class="hidden p-3 rounded-lg bg-[#FEF2F2] border border-[#FECACA] space-y-1">
+          <div class="flex items-center gap-2 text-[#B91C1C] title-4">
+            <i class="ph ph-warning-circle text-lg shrink-0" aria-hidden="true"></i>
+            <span>สลิปถูกตีกลับ กรุณาตรวจสอบและแนบสลิปใหม่</span>
+          </div>
+          <p id="bill-modal-reject-text" class="body-6 text-[#991B1B]"></p>
+        </div>
+
+        <!-- Meter Calculation Breakdown -->
+        <div class="inner-panel p-3 space-y-2">
+          <div class="grid grid-cols-3 gap-2 text-center">
+            <div class="bg-white border border-[#E2E8F0] rounded-lg p-2">
+              <span class="caption-5 text-[#64748B] block">เลขอ่านก่อน</span>
+              <span id="bill-modal-prev" class="title-3 text-[#0F172A] tabular-nums">0</span>
+            </div>
+            <div class="bg-white border border-[#E2E8F0] rounded-lg p-2">
+              <span class="caption-5 text-[#64748B] block">เลขอ่านหลัง</span>
+              <span id="bill-modal-curr" class="title-3 text-[#0F172A] tabular-nums">0</span>
+            </div>
+            <div class="bg-[#EFF6FC] border border-[#BAD6F0] rounded-lg p-2">
+              <span class="caption-5 text-[#164873] block">หน่วยที่ใช้</span>
+              <span id="bill-modal-units" class="title-3 text-[#164873] tabular-nums">0</span>
+            </div>
+          </div>
+
+          <div class="space-y-1 pt-2 border-t border-[#E2E8F0] body-5">
+            <div class="flex justify-between">
+              <span class="text-[#475569]">ค่าน้ำเหมาจ่าย</span>
+              <span id="bill-modal-water" class="tabular-nums text-[#0F172A]">0 บาท</span>
+            </div>
+            <div class="flex justify-between">
+              <span id="bill-modal-rate-note" class="text-[#475569]">ค่าไฟ</span>
+              <span id="bill-modal-electric" class="tabular-nums text-[#0F172A]">0 บาท</span>
+            </div>
+            <div class="flex justify-between pt-2 border-t border-[#CBD5E1] items-baseline">
+              <span class="title-3 text-[#0F172A]">ยอดรวมต้องชำระ</span>
+              <span id="bill-modal-total" class="heading-5 text-[#164873] tabular-nums">0 บาท</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Existing Saved Slip Viewer -->
+        <div id="bill-modal-existing-slip" class="hidden space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <span class="title-4 text-[#0F172A]">หลักฐานสลิปที่บันทึกไว้</span>
+            <span id="bill-modal-paid-at" class="caption-5 text-[#64748B] tabular-nums"></span>
+          </div>
+          <div class="card p-2 space-y-2">
+            <img id="bill-modal-slip-img" src="" alt="ภาพสลิปการโอนเงิน" class="w-full max-h-72 object-contain rounded-lg bg-[#F8FAFC] cursor-pointer" />
+            <a id="bill-modal-slip-link" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-compact button-xsm w-full">
+              <i class="ph ph-arrows-out text-base" aria-hidden="true"></i>
+              <span>เปิดดูภาพสลิปขนาดเต็ม</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Closed Cycle Notice -->
+        <div id="bill-modal-closed-note" class="hidden p-3 rounded-lg bg-[#F1F5F9] border border-[#CBD5E1] text-[#334155] body-6 flex items-center gap-2">
+          <i class="ph ph-lock-simple text-lg shrink-0" aria-hidden="true"></i>
+          <span>รอบบิลนี้ปิดรับชำระแล้ว หากต้องการแจ้งชำระย้อนหลังกรุณาติดต่อผู้ดูแล</span>
+        </div>
+
+        <!-- Upload Slip Section -->
+        <div id="bill-modal-upload-section" class="space-y-3">
+          <div class="space-y-1">
+            <label for="input-slip-file" class="title-4 text-[#0F172A] block">แนบสลิปแจ้งโอนเงิน</label>
+            <p class="caption-4 text-[#64748B]">ระบบจะย่อขนาดภาพอัตโนมัติ (สูงสุด 1000px) ก่อนอัปโหลดเก็บลง Google Drive</p>
+          </div>
+
+          <label for="input-slip-file" class="btn btn-secondary button-sm w-full cursor-pointer">
+            <i class="ph ph-image text-lg" aria-hidden="true"></i>
+            <span>เลือกรูปสลิปจากเครื่อง</span>
+          </label>
+          <input id="input-slip-file" type="file" accept="image/*" class="sr-only" />
+
+          <!-- Preview Before Submit -->
+          <div id="slip-preview-box" class="hidden card p-3 space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <span id="slip-preview-meta" class="caption-3 text-[#475569] tabular-nums">ตัวอย่างภาพสลิป</span>
+              <button id="btn-clear-slip-preview" type="button" class="btn btn-secondary btn-compact button-xsm">
+                <i class="ph ph-trash text-sm" aria-hidden="true"></i>
+                <span>เปลี่ยนรูป</span>
+              </button>
+            </div>
+            <img id="slip-preview-img" src="" alt="ตัวอย่างภาพสลิปก่อนอัปโหลด" class="w-full max-h-64 object-contain rounded-lg bg-[#F8FAFC]" />
+          </div>
+
+          <p id="slip-upload-error" class="hidden body-6 text-[#B91C1C] bg-[#FEF2F2] border border-[#FECACA] rounded-lg px-3 py-2"></p>
+
+          <!-- Real-Time Slip Upload Progress -->
+          <div id="slip-upload-progress-box" class="hidden loading-progress-card space-y-2" role="status" aria-live="polite">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-2 min-w-0">
+                <span id="slip-progress-dot" class="loading-status-dot" aria-hidden="true"></span>
+                <span id="slip-progress-stage" class="title-4 text-[#0F172A] truncate">กำลังเตรียมอัปโหลดสลิป...</span>
+              </div>
+              <span id="slip-progress-percent" class="title-2 text-[#164873] tabular-nums shrink-0">0%</span>
+            </div>
+            <div class="loading-progress-track" role="progressbar" aria-label="ความคืบหน้าการอัปโหลดสลิป" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <div id="slip-progress-bar" class="loading-progress-bar" style="transform: scaleX(0);"></div>
+            </div>
+            <div class="flex items-center justify-between gap-2 caption-4 text-[#64748B] tabular-nums">
+              <span id="slip-progress-meta">กำลังประมวลผลภาพ</span>
+              <span id="slip-progress-elapsed">0.0 วินาที</span>
+            </div>
+          </div>
+
+          <button id="btn-submit-slip" type="button" class="btn btn-primary button-md w-full" disabled>
+            <i class="ph ph-paper-plane-tilt text-lg" aria-hidden="true"></i>
+            <span>ยืนยันส่งสลิปแจ้งโอนเงิน</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Image Lightbox -->
+  <div id="modal-lightbox" class="modal-backdrop" role="dialog" aria-modal="true" aria-label="ดูภาพสลิปขนาดใหญ่">
+    <div class="modal-sheet modal-wide">
+      <div class="px-4 py-3 border-b border-[#E2E8F0] flex items-center justify-between gap-2">
+        <p id="lightbox-caption" class="title-3 text-[#0F172A] truncate">หลักฐานสลิปโอนเงิน</p>
+        <div class="flex items-center gap-2 shrink-0">
+          <a id="lightbox-external-link" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-compact button-xsm">
+            <i class="ph ph-arrow-square-out text-base" aria-hidden="true"></i>
+            <span>เปิดในแท็บใหม่</span>
+          </a>
+          <button type="button" data-close-modal="modal-lightbox" class="btn btn-secondary btn-compact" aria-label="ปิดหน้าต่าง">
+            <i class="ph ph-x text-lg" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+      <div class="p-4 bg-[#F8FAFC] overflow-auto flex items-center justify-center">
+        <img id="lightbox-img" src="" alt="ภาพสลิปขนาดใหญ่" class="max-h-[75vh] w-auto object-contain rounded-lg" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Reject Slip Reason -->
+  <div id="modal-reject-slip" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="reject-modal-title">
+    <div class="modal-sheet">
+      <div class="px-4 py-3 border-b border-[#E2E8F0] flex items-center justify-between gap-2">
+        <h2 id="reject-modal-title" class="title-2 text-[#0F172A]">ตีกลับสลิป</h2>
+        <button type="button" data-close-modal="modal-reject-slip" class="btn btn-secondary btn-compact" aria-label="ปิดหน้าต่าง">
+          <i class="ph ph-x text-lg" aria-hidden="true"></i>
+        </button>
+      </div>
+      <form id="form-reject-slip" class="p-4 space-y-4">
+        <p id="reject-slip-target" class="body-5 text-[#334155]"></p>
+        <div class="space-y-1">
+          <label for="input-reject-reason" class="title-4 text-[#334155] block">ระบุเหตุผลเพื่อแจ้งครูผู้พักอาศัย</label>
+          <textarea id="input-reject-reason" rows="3" class="field-textarea" placeholder="เช่น ยอดโอนไม่ตรงกับยอดบิล หรือภาพสลิปไม่ชัดเจน" required></textarea>
+        </div>
+        <div class="flex justify-end gap-2">
+          <button type="button" data-close-modal="modal-reject-slip" class="btn btn-secondary button-sm">ยกเลิก</button>
+          <button id="btn-confirm-reject" type="submit" class="btn btn-danger button-sm">ยืนยันตีกลับสลิป</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 4: Add / Edit Resident -->
+  <div id="modal-resident-form" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="resident-modal-title">
+    <div class="modal-sheet">
+      <div class="px-4 py-3 border-b border-[#E2E8F0] flex items-center justify-between gap-2">
+        <h2 id="resident-modal-title" class="title-2 text-[#0F172A]">เพิ่มครูย้ายเข้า</h2>
+        <button type="button" data-close-modal="modal-resident-form" class="btn btn-secondary btn-compact" aria-label="ปิดหน้าต่าง">
+          <i class="ph ph-x text-lg" aria-hidden="true"></i>
+        </button>
+      </div>
+      <form id="form-resident" class="p-4 overflow-y-auto space-y-3">
+        <input id="res-form-id" type="hidden" />
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="space-y-1">
+            <label for="res-form-room" class="title-4 text-[#334155] block">เลขห้อง</label>
+            <input id="res-form-room" type="text" class="field-input" placeholder="เช่น 10" required />
+          </div>
+          <div class="space-y-1 sm:col-span-2">
+            <label for="res-form-name" class="title-4 text-[#334155] block">ชื่อและนามสกุล</label>
+            <input id="res-form-name" type="text" class="field-input" placeholder="เช่น นางสาวสมใจ ใจดี" required />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div id="res-form-move-in-wrap" class="space-y-1">
+            <label for="res-form-move-in" class="title-4 text-[#334155] block">วันที่ย้ายเข้า</label>
+            <input id="res-form-move-in" type="date" class="field-input tabular-nums" required />
+          </div>
+          <div class="space-y-1">
+            <label for="res-form-initial-meter" class="title-4 text-[#334155] block">เลขมิเตอร์เริ่มต้น (initial_meter)</label>
+            <input id="res-form-initial-meter" type="number" min="0" step="1" inputmode="numeric" class="field-input tabular-nums" placeholder="เลขมิเตอร์วันย้ายเข้า" required />
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <label for="res-form-note" class="title-4 text-[#334155] block">หมายเหตุ (ถ้ามี)</label>
+          <input id="res-form-note" type="text" class="field-input" placeholder="เช่น ย้ายมาแทนห้องเดิม" />
+        </div>
+
+        <div id="res-form-add-open-wrap" class="inner-panel p-3">
+          <label class="flex items-start gap-2 cursor-pointer">
+            <input id="res-form-add-open" type="checkbox" class="mt-1 w-4 h-4 accent-[#1D5C92]" />
+            <span class="body-5 text-[#0F172A]">เพิ่มเข้าในรอบบิลปัจจุบันที่เปิดอยู่ทันที (กรณีเข้าพักกลางเดือน)</span>
+          </label>
+        </div>
+
+        <p id="res-form-error" class="hidden body-6 text-[#B91C1C] bg-[#FEF2F2] border border-[#FECACA] rounded-lg px-3 py-2"></p>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" data-close-modal="modal-resident-form" class="btn btn-secondary button-sm">ยกเลิก</button>
+          <button id="btn-submit-resident" type="submit" class="btn btn-primary button-sm">บันทึกข้อมูล</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 5: Move Out Resident -->
+  <div id="modal-move-out" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="moveout-modal-title">
+    <div class="modal-sheet">
+      <div class="px-4 py-3 border-b border-[#E2E8F0] flex items-center justify-between gap-2">
+        <h2 id="moveout-modal-title" class="title-2 text-[#0F172A]">แจ้งย้ายออกจากบ้านพัก</h2>
+        <button type="button" data-close-modal="modal-move-out" class="btn btn-secondary btn-compact" aria-label="ปิดหน้าต่าง">
+          <i class="ph ph-x text-lg" aria-hidden="true"></i>
+        </button>
+      </div>
+      <form id="form-move-out" class="p-4 space-y-3">
+        <input id="moveout-resident-id" type="hidden" />
+        <p id="moveout-target-name" class="title-3 text-[#0F172A]"></p>
+        <div class="p-3 rounded-lg bg-[#EFF6FC] border border-[#BAD6F0] caption-1 text-[#164873]">
+          ระบบจะเปลี่ยนสถานะเป็นย้ายออกโดยไม่ลบแถวข้อมูลเดิม ประวัติบิล กราฟสถิติ และหลักฐานสลิปเดือนเก่าทั้งหมดจะยังคงอยู่ถาวร
+        </div>
+        <div class="space-y-1">
+          <label for="moveout-date" class="title-4 text-[#334155] block">วันที่ย้ายออก</label>
+          <input id="moveout-date" type="date" class="field-input tabular-nums" required />
+        </div>
+        <div class="space-y-1">
+          <label for="moveout-note" class="title-4 text-[#334155] block">หมายเหตุการย้ายออก</label>
+          <input id="moveout-note" type="text" class="field-input" placeholder="เช่น ย้ายไปโรงเรียนอื่น" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" data-close-modal="modal-move-out" class="btn btn-secondary button-sm">ยกเลิก</button>
+          <button id="btn-confirm-moveout" type="submit" class="btn btn-danger button-sm">ยืนยันแจ้งย้ายออก</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 6: Create New Cycle -->
+  <div id="modal-create-cycle" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="create-cycle-title">
+    <div class="modal-sheet">
+      <div class="px-4 py-3 border-b border-[#E2E8F0] flex items-center justify-between gap-2">
+        <h2 id="create-cycle-title" class="title-2 text-[#0F172A]">ขึ้นรอบบิลเดือนใหม่</h2>
+        <button type="button" data-close-modal="modal-create-cycle" class="btn btn-secondary btn-compact" aria-label="ปิดหน้าต่าง">
+          <i class="ph ph-x text-lg" aria-hidden="true"></i>
+        </button>
+      </div>
+      <form id="form-create-cycle" class="p-4 overflow-y-auto space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-1">
+            <label for="new-cycle-month" class="title-4 text-[#334155] block">เดือน</label>
+            <select id="new-cycle-month" class="field-select" required></select>
+          </div>
+          <div class="space-y-1">
+            <label for="new-cycle-year-th" class="title-4 text-[#334155] block">ปี พ.ศ.</label>
+            <input id="new-cycle-year-th" type="number" min="2560" max="2650" inputmode="numeric" class="field-input tabular-nums" required />
+          </div>
+        </div>
+
+        <div class="inner-panel px-3 py-2 flex items-center justify-between caption-1">
+          <span class="text-[#475569]">รหัสรอบบิล (cycle_id)</span>
+          <span id="new-cycle-id-preview" class="title-4 text-[#164873] tabular-nums">-</span>
+        </div>
+
+        <div class="space-y-1">
+          <label for="new-cycle-due-date" class="title-4 text-[#334155] block">วันครบกำหนดชำระ</label>
+          <input id="new-cycle-due-date" type="text" class="field-input" placeholder="เช่น 28 ธันวาคม 2569" required />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-1">
+            <label for="new-cycle-water-rate" class="title-4 text-[#334155] block">ค่าน้ำ (บาท/ห้อง)</label>
+            <input id="new-cycle-water-rate" type="number" min="0" step="1" inputmode="numeric" class="field-input tabular-nums" required />
+          </div>
+          <div class="space-y-1">
+            <label for="new-cycle-electric-rate" class="title-4 text-[#334155] block">ค่าไฟ (บาท/หน่วย)</label>
+            <input id="new-cycle-electric-rate" type="number" min="0" step="0.5" inputmode="decimal" class="field-input tabular-nums" required />
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <p class="title-4 text-[#334155]">รายชื่อครู Active ที่จะถูกดึงเข้าบิลรอบนี้</p>
+          <div id="new-cycle-residents-preview" class="inner-panel p-2 max-h-40 overflow-y-auto space-y-1 caption-2"></div>
+        </div>
+
+        <p id="create-cycle-error" class="hidden body-6 text-[#B91C1C] bg-[#FEF2F2] border border-[#FECACA] rounded-lg px-3 py-2"></p>
+
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" data-close-modal="modal-create-cycle" class="btn btn-secondary button-sm">ยกเลิก</button>
+          <button id="btn-confirm-create-cycle" type="submit" class="btn btn-primary button-sm">สร้างรอบบิลใหม่</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 7: School Summary Report Preview & Print -->
+  <div id="modal-school-report" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="school-report-title">
+    <div class="modal-sheet modal-wide">
+      <div class="px-4 py-3 border-b border-[#E2E8F0] flex flex-wrap items-center justify-between gap-2">
+        <h2 id="school-report-title" class="title-2 text-[#0F172A]">ตารางสรุปยอดส่งโรงเรียน</h2>
+        <div class="flex items-center gap-2">
+          <button id="btn-export-month-csv" type="button" class="btn btn-secondary btn-compact button-sm">
+            <i class="ph ph-file-csv text-base" aria-hidden="true"></i>
+            <span>Export CSV</span>
+          </button>
+          <button id="btn-print-school-report" type="button" class="btn btn-primary btn-compact button-sm">
+            <i class="ph ph-printer text-base" aria-hidden="true"></i>
+            <span>สั่งพิมพ์ A4</span>
+          </button>
+          <button type="button" data-close-modal="modal-school-report" class="btn btn-secondary btn-compact" aria-label="ปิดหน้าต่าง">
+            <i class="ph ph-x text-lg" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+      <div id="school-report-table-wrap" class="p-4 overflow-auto"></div>
+    </div>
+  </div>
+
+  <!-- Modal 8: LINE Summary Text Preview & Copy -->
+  <div id="modal-line-summary" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="line-modal-title">
+    <div class="modal-sheet">
+      <div class="px-4 py-3 border-b border-[#E2E8F0] flex items-center justify-between gap-2">
+        <h2 id="line-modal-title" class="title-2 text-[#0F172A]">ข้อความสรุปยอดส่งกลุ่ม LINE</h2>
+        <button type="button" data-close-modal="modal-line-summary" class="btn btn-secondary btn-compact" aria-label="ปิดหน้าต่าง">
+          <i class="ph ph-x text-lg" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="p-4 space-y-3">
+        <label for="line-summary-textarea" class="caption-1 text-[#475569] block">สามารถแก้ไขข้อความเพิ่มเติมก่อนคัดลอกได้</label>
+        <textarea id="line-summary-textarea" rows="12" class="field-textarea body-6 tabular-nums"></textarea>
+        <div class="flex justify-end gap-2">
+          <button type="button" data-close-modal="modal-line-summary" class="btn btn-secondary button-sm">ปิด</button>
+          <button id="btn-copy-line-text" type="button" class="btn btn-success button-sm">
+            <i class="ph ph-copy text-base" aria-hidden="true"></i>
+            <span>คัดลอกข้อความทั้งหมด</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 9: Generic Confirmation Dialog (Replaces window.confirm) -->
+  <div id="modal-confirm" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+    <div class="modal-sheet">
+      <div class="px-4 py-3 border-b border-[#E2E8F0] flex items-center justify-between gap-2">
+        <h2 id="confirm-modal-title" class="title-2 text-[#0F172A]">ยืนยันการดำเนินการ</h2>
+        <button type="button" data-close-modal="modal-confirm" class="btn btn-secondary btn-compact" aria-label="ปิดหน้าต่าง">
+          <i class="ph ph-x text-lg" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="p-4 space-y-4">
+        <p id="confirm-modal-message" class="body-3 text-[#334155]"></p>
+        <div class="flex justify-end gap-2">
+          <button type="button" data-close-modal="modal-confirm" class="btn btn-secondary button-sm">ยกเลิก</button>
+          <button id="btn-confirm-ok" type="button" class="btn btn-primary button-sm">ยืนยัน</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Scripts (Classic Defer — Works on Both file:// and http/https) -->
+  <script defer src="./js/config.js"></script>
+  <script defer src="./js/api.js"></script>
+  <script defer src="./js/charts.js"></script>
+  <script defer src="./js/app.js"></script>
+  <script>
+    // Boot Watchdog: ป้องกันหน้าจอค้างเป็น Skeleton หากสคริปต์โหลดไม่สำเร็จ
+    window.addEventListener('DOMContentLoaded', function () {
+      setTimeout(function () {
+        if (!window.SamsaraApp || !window.SamsaraApp.__booted) {
+          var skel = document.getElementById('bills-skeleton');
+          var errBox = document.getElementById('bills-error-box');
+          var errText = document.getElementById('bills-error-text');
+          if (skel) skel.classList.add('hidden');
+          if (errText) {
+            errText.textContent = 'ไม่สามารถเริ่มต้นสคริปต์หน้าเว็บได้ กรุณาตรวจสอบว่าโฟลเดอร์ web/js/ มีไฟล์ครบทั้ง 4 ไฟล์ (config.js, api.js, charts.js, app.js) แล้วกดลองใหม่';
+          }
+          if (errBox) errBox.classList.remove('hidden');
+        }
+      }, 2500);
+    });
+  </script>
+</body>
+</html>
