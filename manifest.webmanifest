@@ -1,0 +1,42 @@
+{
+  "id": "./",
+  "name": "ระบบจดและติดตามค่าน้ำ ค่าไฟ บ้านพักครู (สามสาระ)",
+  "short_name": "ค่าน้ำค่าไฟ สามสาระ",
+  "description": "ระบบตรวจสอบยอดค่าน้ำและค่าไฟรายเดือน แนบสลิปโอนเงิน ติดตามสถิติย้อนหลัง และจดมิเตอร์สำหรับบ้านพักครู (สามสาระ)",
+  "lang": "th",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#F8FAFC",
+  "theme_color": "#1D5C92",
+  "categories": ["utilities", "finance"],
+  "icons": [
+    {
+      "src": "./web/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./web/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./web/icons/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./web/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

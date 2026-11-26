@@ -611,6 +611,88 @@ body {
   border-bottom: 1px solid var(--border-primary);
 }
 
+/* Brand App Icon (UI Header, Install Banner & Guide Modal) */
+.app-brand-icon {
+  display: block;
+  width: 40px;
+  height: 40px;
+  border-radius: 20%;
+  object-fit: cover;
+}
+
+.app-brand-icon-md {
+  width: 44px;
+  height: 44px;
+}
+
+.app-brand-icon-lg {
+  width: 52px;
+  height: 52px;
+}
+
+/* PWA Install Header Button */
+.btn-install-header {
+  min-height: 40px;
+  padding: var(--space-50) var(--space-100);
+  background-color: var(--surface-brand-subtle);
+  border-color: var(--border-brand);
+  color: var(--text-brand);
+}
+
+.btn-install-header:hover:not(:disabled) {
+  background-color: var(--core-primary-100);
+  border-color: var(--core-primary-300);
+}
+
+/* PWA Dismissible Install Banner */
+.pwa-install-banner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-100);
+  padding: var(--space-100) var(--space-200);
+  background-color: var(--surface-brand-subtle);
+  border: 1px solid var(--border-brand);
+  border-radius: var(--radius-16);
+}
+
+@media (min-width: 640px) {
+  .pwa-install-banner {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.pwa-dismiss-btn {
+  min-width: 36px;
+  padding: var(--space-50);
+  color: var(--text-muted);
+}
+
+/* PWA Install Guide Steps */
+.pwa-guide-step {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-100);
+  padding: var(--space-100);
+  background-color: var(--surface-canvas);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-8);
+}
+
+.pwa-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background-color: var(--action-primary);
+  color: var(--text-inverted);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
 .nav-desktop-btn {
   display: inline-flex;
   align-items: center;
@@ -990,6 +1072,8 @@ body {
   }
 
   #app-shell,
+  #pwa-install-banner,
+  #btn-install-app,
   .modal-backdrop,
   .toast-container,
   .mobile-bottom-nav,

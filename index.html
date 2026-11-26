@@ -6,8 +6,18 @@
   <title>ระบบจดและติดตามค่าน้ำ ค่าไฟ บ้านพักครู (สามสาระ)</title>
   <meta name="description" content="ระบบตรวจสอบยอดค่าน้ำและค่าไฟรายเดือน แนบสลิปโอนเงิน ติดตามสถิติย้อนหลัง และจดมิเตอร์สำหรับบ้านพักครู (สามสาระ)" />
 
-  <!-- Branded SVG Favicon -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%231D5C92'/%3E%3Cpath d='M34 12L18 35h13l-2 17 17-23H33l1-17z' fill='%23FFFFFF'/%3E%3C/svg%3E" />
+  <!-- PWA Manifest & Mobile Web App Meta -->
+  <meta name="theme-color" content="#1D5C92" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="ค่าน้ำค่าไฟ สามสาระ" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+
+  <!-- App Icons & Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="./web/icons/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./web/icons/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./web/icons/apple-touch-icon.png" />
 
   <!-- Google Fonts: Prompt & Sarabun (No Italic, Cap at Bold 700) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -54,38 +64,91 @@
 
     <!-- Top Application Header -->
     <header class="app-header">
-      <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+      <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-2 sm:gap-3">
         <div class="flex items-center gap-3 min-w-0">
-          <div class="w-10 h-10 rounded-lg bg-[#1D5C92] text-white flex items-center justify-center shrink-0" aria-hidden="true">
-            <i class="ph ph-lightning text-xl"></i>
-          </div>
+          <img
+            src="./web/icons/app-logo-128.png"
+            alt="โลโก้ระบบจดและติดตามค่าน้ำ ค่าไฟ บ้านพักครู (สามสาระ)"
+            width="40"
+            height="40"
+            class="app-brand-icon shrink-0"
+          />
           <div class="min-w-0">
             <h1 id="header-house-name" class="title-2 text-[#0F172A] truncate">บ้านพักครู (สามสาระ)</h1>
             <p id="header-cycle-subtitle" class="caption-4 text-[#64748B] truncate">ระบบจดและติดตามค่าน้ำและค่าไฟ</p>
           </div>
         </div>
 
-        <!-- Desktop Navigation (Visible sm+) -->
-        <nav class="hidden sm:flex items-center gap-2" aria-label="เมนูหลัก">
-          <button type="button" data-nav-view="bills" class="nav-desktop-btn title-4 is-active" aria-current="page">
-            <i class="ph ph-receipt text-lg" aria-hidden="true"></i>
-            <span>บิลประจำเดือน</span>
+        <div class="flex items-center gap-2 shrink-0">
+          <!-- Desktop Navigation (Visible sm+) -->
+          <nav class="hidden sm:flex items-center gap-2" aria-label="เมนูหลัก">
+            <button type="button" data-nav-view="bills" class="nav-desktop-btn title-4 is-active" aria-current="page">
+              <i class="ph ph-receipt text-lg" aria-hidden="true"></i>
+              <span>บิลประจำเดือน</span>
+            </button>
+            <button type="button" data-nav-view="stats" class="nav-desktop-btn title-4">
+              <i class="ph ph-chart-bar text-lg" aria-hidden="true"></i>
+              <span>สถิติและย้อนหลัง</span>
+            </button>
+            <button type="button" data-nav-view="admin" class="nav-desktop-btn title-4 relative">
+              <i class="ph ph-shield-check text-lg" aria-hidden="true"></i>
+              <span>ผู้ดูแลระบบ</span>
+              <span id="nav-pending-badge-desktop" class="hidden ml-1 px-2 py-0.5 rounded-full bg-[#2563EB] text-white caption-3 tabular-nums">0</span>
+            </button>
+          </nav>
+
+          <!-- PWA Install App Button (Auto-hidden in Standalone Mode) -->
+          <button
+            id="btn-install-app"
+            type="button"
+            class="btn btn-install-header button-xsm shrink-0 hidden"
+            title="ติดตั้งเว็บแอปลงบนอุปกรณ์"
+            aria-label="ติดตั้งเว็บแอป"
+          >
+            <i class="ph ph-download-simple text-base" aria-hidden="true"></i>
+            <span class="sm:hidden md:inline">ติดตั้งแอป</span>
           </button>
-          <button type="button" data-nav-view="stats" class="nav-desktop-btn title-4">
-            <i class="ph ph-chart-bar text-lg" aria-hidden="true"></i>
-            <span>สถิติและย้อนหลัง</span>
-          </button>
-          <button type="button" data-nav-view="admin" class="nav-desktop-btn title-4 relative">
-            <i class="ph ph-shield-check text-lg" aria-hidden="true"></i>
-            <span>ผู้ดูแลระบบ</span>
-            <span id="nav-pending-badge-desktop" class="hidden ml-1 px-2 py-0.5 rounded-full bg-[#2563EB] text-white caption-3 tabular-nums">0</span>
-          </button>
-        </nav>
+        </div>
       </div>
     </header>
 
     <!-- Main Content Area -->
     <main id="main-content" class="flex-1 max-w-4xl w-full mx-auto px-4 pt-4 pb-24 sm:pb-12">
+
+      <!-- PWA Install Banner (Dismissible, Auto-hidden in Standalone Mode) -->
+      <aside id="pwa-install-banner" class="hidden pwa-install-banner mb-4" aria-label="แนะนำการติดตั้งเว็บแอป">
+        <div class="flex items-center gap-3 min-w-0 flex-1">
+          <img
+            src="./web/icons/app-logo-128.png"
+            alt=""
+            width="44"
+            height="44"
+            class="app-brand-icon app-brand-icon-md shrink-0"
+            aria-hidden="true"
+          />
+          <div class="min-w-0">
+            <p class="title-4 text-[#0F172A] truncate">ติดตั้งแอป ค่าน้ำค่าไฟ สามสาระ</p>
+            <p id="pwa-banner-desc" class="caption-4 text-[#475569]">
+              ติดตั้งเป็นแอปไว้บนหน้าจอหลัก เพื่อเข้าดูบิลและแนบสลิปได้สะดวกรวดเร็ว
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+          <button id="btn-banner-install" type="button" class="btn btn-primary btn-compact button-xsm flex-1 sm:flex-none">
+            <i class="ph ph-download-simple text-base" aria-hidden="true"></i>
+            <span id="pwa-banner-btn-label">ติดตั้งแอป</span>
+          </button>
+          <button
+            id="btn-banner-dismiss"
+            type="button"
+            class="btn btn-secondary btn-compact pwa-dismiss-btn"
+            title="ปิดแถบแนะนำชั่วคราว"
+            aria-label="ปิดแถบแนะนำการติดตั้งแอป"
+          >
+            <i class="ph ph-x text-base" aria-hidden="true"></i>
+          </button>
+        </div>
+      </aside>
 
       <!-- ================================================================== -->
       <!-- VIEW 1: บิลประจำเดือน (Public Resident View)                         -->
@@ -1126,11 +1189,132 @@
     </div>
   </div>
 
+  <!-- Modal 10: PWA Install Guide (iOS Safari / LINE In-App / Browser Fallback) -->
+  <div id="modal-install-guide" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="install-guide-title">
+    <div class="modal-sheet">
+      <div class="px-4 py-3 border-b border-[#E2E8F0] flex items-center justify-between gap-2">
+        <h2 id="install-guide-title" class="title-2 text-[#0F172A] truncate">ติดตั้งเว็บแอปลงบนอุปกรณ์</h2>
+        <button type="button" data-close-modal="modal-install-guide" class="btn btn-secondary btn-compact" aria-label="ปิดหน้าต่าง">
+          <i class="ph ph-x text-lg" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="p-4 overflow-y-auto space-y-4">
+        <!-- App Identity Preview -->
+        <div class="inner-panel p-3 flex items-center gap-3">
+          <img
+            src="./web/icons/app-logo-128.png"
+            alt="ไอคอนแอป ค่าน้ำค่าไฟ สามสาระ"
+            width="52"
+            height="52"
+            class="app-brand-icon app-brand-icon-lg shrink-0"
+          />
+          <div class="min-w-0">
+            <p class="title-3 text-[#0F172A] truncate">ค่าน้ำค่าไฟ สามสาระ</p>
+            <p id="install-guide-subtitle" class="caption-2 text-[#475569]">
+              เพิ่มไอคอนแอปไว้บนหน้าจอหลัก เพื่อเข้าดูบิลและส่งสลิปได้ทันทีโดยไม่ต้องพิมพ์ลิงก์ใหม่
+            </p>
+          </div>
+        </div>
+
+        <!-- Guide A: LINE / Facebook In-App Browser -->
+        <div id="install-guide-inapp" class="hidden space-y-2.5">
+          <div class="pwa-guide-step">
+            <span class="pwa-step-num caption-3">1</span>
+            <div class="body-5 text-[#0F172A]">
+              แตะปุ่มเมนู <strong>แชร์ / จุด 3 จุด</strong>
+              <i class="ph ph-dots-three-outline text-base align-middle text-[#1D5C92]" aria-hidden="true"></i>
+              ที่มุมขวาล่างหรือมุมขวาบนของแอปแชท
+            </div>
+          </div>
+          <div class="pwa-guide-step">
+            <span class="pwa-step-num caption-3">2</span>
+            <div class="body-5 text-[#0F172A]">
+              เลือก <strong>"เปิดด้วยเบราว์เซอร์เริ่มต้น"</strong> (Chrome บน Android หรือ Safari บน iPhone)
+            </div>
+          </div>
+          <div class="pwa-guide-step">
+            <span class="pwa-step-num caption-3">3</span>
+            <div class="body-5 text-[#0F172A]">
+              เมื่อหน้าเว็บเปิดในเบราว์เซอร์หลักแล้ว ให้กดปุ่ม <strong>"ติดตั้งแอป"</strong> อีกครั้งเพื่อวางไอคอนบนหน้าจอหลัก
+            </div>
+          </div>
+        </div>
+
+        <!-- Guide B: iPhone / iPad Safari -->
+        <div id="install-guide-ios" class="hidden space-y-2.5">
+          <div class="pwa-guide-step">
+            <span class="pwa-step-num caption-3">1</span>
+            <div class="body-5 text-[#0F172A]">
+              แตะปุ่ม <strong>แชร์ (Share)</strong>
+              <i class="ph ph-export text-base align-middle text-[#1D5C92]" aria-hidden="true"></i>
+              ที่แถบเครื่องมือด้านล่างของ Safari
+            </div>
+          </div>
+          <div class="pwa-guide-step">
+            <span class="pwa-step-num caption-3">2</span>
+            <div class="body-5 text-[#0F172A]">
+              เลื่อนรายการลงแล้วแตะ <strong>"เพิ่มไปยังหน้าจอโฮม"</strong>
+              <i class="ph ph-plus-square text-base align-middle text-[#1D5C92]" aria-hidden="true"></i>
+              (Add to Home Screen)
+            </div>
+          </div>
+          <div class="pwa-guide-step">
+            <span class="pwa-step-num caption-3">3</span>
+            <div class="body-5 text-[#0F172A]">
+              แตะปุ่ม <strong>"เพิ่ม" (Add)</strong> มุมขวาบน เพื่อวางไอคอนแอปไว้บนหน้าจอหลักทันที
+            </div>
+          </div>
+        </div>
+
+        <!-- Guide C: General Browser Fallback (Chrome / Edge / Firefox / Desktop) -->
+        <div id="install-guide-browser" class="hidden space-y-2.5">
+          <div class="pwa-guide-step">
+            <span class="pwa-step-num caption-3">1</span>
+            <div class="body-5 text-[#0F172A]">
+              <strong>บนมือถือ Android:</strong> แตะเมนู <strong>จุด 3 จุด (⋮)</strong> มุมขวาบนของเบราว์เซอร์ แล้วเลือก <strong>"ติดตั้งแอป"</strong> หรือ <strong>"เพิ่มลงในหน้าจอหลัก"</strong>
+            </div>
+          </div>
+          <div class="pwa-guide-step">
+            <span class="pwa-step-num caption-3">2</span>
+            <div class="body-5 text-[#0F172A]">
+              <strong>บนคอมพิวเตอร์ (Chrome / Edge):</strong> คลิกไอคอน <strong>ติดตั้ง</strong>
+              <i class="ph ph-download-simple text-base align-middle text-[#1D5C92]" aria-hidden="true"></i>
+              ด้านขวาสุดของแถบที่อยู่เว็บ (Address Bar) แล้วกดยืนยัน
+            </div>
+          </div>
+        </div>
+
+        <!-- Guide D: Opened via Local file:// -->
+        <div id="install-guide-file" class="hidden space-y-2.5">
+          <div class="p-3 rounded-lg bg-[#FFF7ED] border border-[#FED7AA] text-[#C2410C] body-6 flex items-start gap-2">
+            <i class="ph ph-info text-lg shrink-0 mt-0.5" aria-hidden="true"></i>
+            <span>
+              เบราว์เซอร์จะอนุญาตให้ติดตั้งเป็นเว็บแอป (PWA) เมื่อเปิดผ่านลิงก์เว็บ <strong>HTTPS</strong> (เช่น GitHub Pages หรือ Vercel) หรือผ่าน <strong>Localhost</strong> เท่านั้น
+            </span>
+          </div>
+        </div>
+
+        <!-- Copy URL Helper + Close -->
+        <div class="flex flex-wrap items-center justify-end gap-2 pt-1">
+          <div id="install-guide-copy-wrap" class="flex-1 sm:flex-none">
+            <button id="btn-install-copy-url" type="button" class="btn btn-secondary button-sm w-full sm:w-auto">
+              <i class="ph ph-link text-base" aria-hidden="true"></i>
+              <span>คัดลอกลิงก์หน้าเว็บ</span>
+            </button>
+          </div>
+          <button type="button" data-close-modal="modal-install-guide" class="btn btn-primary button-sm">เข้าใจแล้ว</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Application Scripts (Classic Defer — Works on Both file:// and http/https) -->
   <script defer src="./web/js/config.js"></script>
   <script defer src="./web/js/api.js"></script>
   <script defer src="./web/js/charts.js"></script>
   <script defer src="./web/js/app.js"></script>
+  <script defer src="./web/js/pwa.js"></script>
   <script>
     // Boot Watchdog: ป้องกันหน้าจอค้างเป็น Skeleton หากสคริปต์โหลดไม่สำเร็จ
     window.addEventListener('DOMContentLoaded', function () {

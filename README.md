@@ -26,6 +26,8 @@ Web App แบบ Mobile-First สำหรับดูยอดบิล แน
 ```text
 samsara-utility-bill/
 ├── index.html               # หน้าแอป Mobile-First ครบทุกมุมมองและ Modal (อยู่ที่ Root พร้อมขึ้น GitHub Pages)
+├── manifest.webmanifest     # ข้อมูล Web App Manifest สำหรับติดตั้งเป็นแอปบนมือถือและเดสก์ท็อป (PWA)
+├── sw.js                    # Service Worker แคชเฉพาะ App Shell (Network-First, ไม่แคช API ข้อมูลบิล)
 ├── README.md                # คู่มือการติดตั้งและใช้งาน
 ├── docs/
 │   └── SPEC.md              # เอกสารสเปกและโครงสร้างฐานข้อมูล
@@ -35,11 +37,13 @@ samsara-utility-bill/
 └── web/
     ├── css/
     │   └── style.css        # Design Tokens, Text Styles, Motion และ @media print
+    ├── icons/               # ชุดไอคอนแอป PNG ครบทุกขนาด (Favicon, UI Header, Apple Touch, PWA Any & Maskable)
     └── js/
         ├── config.js        # ตั้งค่า GAS_WEB_APP_URL และระบบ Mock Data อัตโนมัติ
         ├── api.js           # ตัวเชื่อมต่อ API, Real-Time Progress, บีบอัดสลิป และ Mock Router
         ├── charts.js        # จัดการกราฟ Chart.js หน้าสถิติย้อนหลัง
-        └── app.js           # ลอจิกหลักของหน้าจอทั้งหมด (Resident, Stats, Admin, Print, CSV)
+        ├── app.js           # ลอจิกหลักของหน้าจอทั้งหมด (Resident, Stats, Admin, Print, CSV)
+        └── pwa.js           # จัดการลงทะเบียน Service Worker และระบบติดตั้งเว็บแอป (Android / iOS / LINE / Desktop)
 ```
 
 ---
@@ -104,6 +108,17 @@ samsara-utility-bill/
 1. เข้า [vercel.com](https://vercel.com) → **Add New Project** → เชื่อมต่อ GitHub Repository `samsara-utility-bill`
 2. ปล่อย **Root Directory**, **Build Command** และ **Output Directory** เป็นค่าเริ่มต้น (Static HTML) แล้วกด **Deploy**
 3. นำ URL ที่ได้ไปใช้งานและเปิดในมือถือได้ทันที
+
+---
+
+## การติดตั้งเป็นเว็บแอปบนมือถือและคอมพิวเตอร์ (PWA)
+
+ระบบรองรับการติดตั้งเป็นเว็บแอป (Progressive Web App) พร้อมไอคอนเฉพาะบนหน้าจอหลัก เพื่อให้ครูเปิดดูบิลและส่งสลิปได้ทันทีโดยไม่ต้องเปิดลิงก์ใหม่ทุกเดือน:
+
+- **Android (Chrome / Edge / Samsung Internet):** เปิดลิงก์เว็บแล้วกดปุ่ม **ติดตั้งแอป** บนแถบด้านบน หรือบนแบนเนอร์แนะนำ เพื่อยืนยันติดตั้งได้ทันที
+- **iPhone / iPad (Safari):** กดปุ่ม **ติดตั้งแอป** เพื่อดูขั้นตอน หรือแตะปุ่ม **แชร์ (Share) → เพิ่มไปยังหน้าจอโฮม (Add to Home Screen) → เพิ่ม**
+- **กรณีเปิดลิงก์จากกลุ่ม LINE:** แตะเมนูมุมขวาล่าง/ขวาบนแล้วเลือก **เปิดด้วยเบราว์เซอร์เริ่มต้น (Chrome / Safari)** ก่อน จึงจะสามารถกดติดตั้งไอคอนลงหน้าจอหลักได้
+- **คอมพิวเตอร์ (Chrome / Edge):** กดปุ่ม **ติดตั้งแอป** บนแถบด้านบน หรือคลิกไอคอนติดตั้งในแถบ Address Bar
 
 ---
 
